@@ -32,3 +32,28 @@ This is similar to good old template specializations:
 
  template<typename T>
  struct block<T const * const> { };
+
+
+April 20, 2012
+
+ A Note on the main Function
+
+Section 3.6.1 of the C++11 standard states that the main function may take
+either of these two forms:
+
+ int main() { /* ... */ }
+
+and
+
+ int main(int argc, char* argv[]) { /* ... */ }
+
+If an implementation must allow main to take an argument of type char*[] then a
+more const-restricted signature is valid as well:
+
+ int main(int argc, char const * argv[]) { /* ... */ }
+
+And even
+
+ int main(int argc, char const * const argv[]) { /* ... */ }
+
+And if you can, why won't you?
