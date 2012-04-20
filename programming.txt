@@ -1,0 +1,34 @@
+April 20, 2012
+
+ auto const
+
+auto const means T const. If T is a pointer of type P then auto const means
+auto P * const. If you want to qualify the pointee const then place the const
+keyword before an asterisk:
+
+ T* get_pointer();
+
+ void play()
+ {
+     auto const p0(get_pointer());         // T       * const
+     auto * const p1(get_pointer());       // T       * const
+     auto const * p2(get_pointer());       // T const *
+     auto const * const p3(get_pointer()); // T const * const
+ }
+
+This is similar to good old template specializations:
+
+ template<typename T>
+ struct block { };
+
+ template<typename T>
+ struct block<T*> { };
+
+ template<typename T>
+ struct block<T * const> { };
+
+ template<typename T>
+ struct block<T const *> { };
+
+ template<typename T>
+ struct block<T const * const> { };
