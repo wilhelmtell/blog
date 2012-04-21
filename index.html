@@ -10,6 +10,52 @@
 
     <article>
     <header>
+    <h1>A Note on the <code>main()</code> Function</h1>
+    <p><time datetime="2011-04-28">April 28, 2012</time></p>
+    </header>
+
+    <p>
+      Section 3.6.1 of the C++11 standard states that the <code>main()</code>
+      function may take either of these two forms:
+    </p>
+
+    <p>
+      <code>int main() { /* ... */ }</code>
+    </p>
+
+    <p>
+      and
+    </p>
+
+    <p>
+      <code>int main(int argc, char* argv[]) { /* ... */ }</code>
+    </p>
+
+    <p>
+      If an implementation must allow <code>main()</code> to take an argument
+      of type <code>char*[]</code> then a more const-restricted signature is
+      valid as well:
+    </p>
+
+    <p>
+      <code>int main(int argc, char const * argv[]) { /* ... */ }</code>
+    </p>
+
+    <p>
+      And even
+    </p>
+
+    <p>
+      <code>int main(int argc, char const * const argv[]) { /* ... */ }</code>
+    </p>
+
+    <p>
+      And if you can, why won't you?
+    </p>
+    </article>
+
+    <article>
+    <header>
     <h1><code>auto const</code></h1>
     <p><time datetime="2011-04-21">April 21, 2012</time></p>
     </header>
