@@ -9,11 +9,55 @@
     <h1>Undirected Disconnected Random Ramblings</h1>
 
     <article>
-      <header>
-        <h1>Text[0]</h1>
-        <p><time datetime="2011-04-01">April 1, 2011</time></p>
-      </header>
-      <p>Pay no attention to that man behind the curtain.</p>
+    <header>
+    <h1><code>auto const</code></h1>
+    <p><time datetime="2011-04-21">April 21, 2012</time></p>
+    </header>
+
+    <p>
+      <code>auto const</code> means <code>T const</code>. If <code>T</code> is
+      a pointer of type <code>P</code> then <code>auto const</code> means
+      <code>auto P * const</code>. If you want to qualify the pointee
+      <code>const</code> then place the <code>const</code> keyword before an
+      asterisk:
+    </p>
+
+<pre>
+<code>
+T* get_pointer();
+
+void play()
+{
+    auto const p0(get_pointer());          // T       * const
+    auto * const p1(get_pointer());        // T       * const
+    auto const * p2(get_pointer());        // T const *
+    auto const * const p3(get_pointer());  // T const * const
+}
+</code>
+</pre>
+
+      <p>
+        This is similar to good old template specializations:
+      </p>
+
+<pre>
+<code>
+template&lt;typename T>
+struct block { };
+
+template&lt;typename T>
+struct block&lt;T*> { };
+
+template&lt;typename T>
+struct block&lt;T * const> { };
+
+template&lt;typename T>
+struct block&lt;T const *> { };
+
+template&lt;typename T>
+struct block&lt;T const * const> { };
+</code>
+</pre>
     </article>
   </body>
 </html>
