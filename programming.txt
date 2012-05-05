@@ -1,3 +1,126 @@
+May 5, 2012
+
+ Resource Acquisition Is Initialization
+
+Suppose we wish to allow our users to undo any operation. We define a base
+class and derive from that a class for each operation we support undo for.
+
+ struct operation {
+     virtual void perform();
+     virtual void rollback();
+ };
+
+ struct paste : public operation {
+     paste(area const& a, position const& pos);
+     void perform();
+     void rollback();
+ };
+
+When we instantiate and store operations for later undo we probably want to
+allocate the instances on the free-store:
+
+ auto op = new paste(rectangle(25, 8), center());
+ undo_tree.push(op);
+
+Can you spot the problem we introduced here? We implicitly transferred the
+ownership of op to undo_tree. Nothing in the code explicitly says so, and there
+is no way for undo_tree to know that it now owns the pointer we passed it,
+unless it assumes ownership for all pointers it receives through its push()
+member function. Standard containers, and hence containers that strive to
+"feel" like standard containers, don't assume ownership of the elements they
+hold. This means we need to add code for freeing this memory.
+
+As we add features to our codebase we find a pattern emerges: for any dynamic
+allocation we must add code for freeing memory.
+
+ * This is not just about avoiding plain-vanilla memory leaks,
+ * it is code that repeats itself, almost copy-pasted semantically speaking,
+   for acquiring memory and then freeing the memory. And it's not just about
+   eliminating duplication in our code, but
+ * it is about handling errors as well. What if, after successfully allocating
+   dynamic memory, we encounter an error? Unless that error immediately
+   terminates our application we need to free the memory we allocated. This
+   increases our code complexity exponentially because each hunk introduces
+   many new possible errors, and also alters previous error conditions.
+
+Garbage collection, you say? Hold your thought, we're not through yet.
+
+Let's step back for a moment. Let's open a file for storing our undo
+operations, so that we have a persistent undo. This allows the user to quit the
+application, restart the application, and then undo the last operation
+committed just before quitting the application earlier. Most file-systems ask
+us to close any file we open, to announce the boundaries of our file use, so
+the operating-system can manage concurrent use of files correctly.
+
+We open a file, we close the file. The interesting part for us is what we write
+in the file; opening and closing the file is sort of bureaucracy, friction,
+things we do for technical reasons of our platform. Reminds you of something?
+This is very similar to allocating and freeing dynamic memory!
+
+What about supporting collaborative work in our application? Now we need
+network connectivity: connect to a user at the start of a session, disconnect
+at the end of the session. During the collaborative errors things can and
+usually do go wrong.
+
+How about an atomic monetary transaction? Begin the transaction, end the
+transaction, make sure we account for any errors than can trigger in between.
+
+Does our undo file become to hard to manage concurrently? If we are going to
+switch to a database that handles this headache for us then we need to connect
+to the database, start a transaction, end the transaction, disconnect from the
+database. And handle any errors that may happen anywhere in between.
+
+Ok, enough already. We see the pattern by now. If you thought at the start that
+garbage collection is the solution to the memory problem, by now surely you see
+that memory management is only the tip of the iceberg. This is not a memory
+management issue, but a resource management issue. A garbage collector solves
+only our memory management issues, and it provides an inelegant,
+non-deterministic solution, and it may or may not be performant. We need a
+bigger gun.
+
+C++ has a very useful set of guarantee when it speaks of automatic (stack)
+object lifetimes:
+
+ 1  An object does not exist, as if never existed to begin with, unless and
+    until its constructor successfully completes its business.
+ 2  Objects destruct at the end of their scope in the reverse order to which
+    they instantiated.
+
+The modern C++ solution to our problem is RAII, standing for Resource
+Acquisition Is Initialization. For every resource we create a class. We acquire
+the resource in the class constructor, and release the resource in its
+destructor. This may sound obvious, but notice the subtleties here: we only
+acquire the resource if the constructor completes, and we are guaranteed by the
+language that the resource will release automatically precisely at the correct
+and most efficient moment to do so. If the constructor does not complete, and
+that can only happen because of an exception, barring an abrupt call such as
+std::terminate() and the like. When an exception triggers all automatic objects
+end their lifetime, and resources gracefully correctly and efficiently release.
+
+Let's conclude by fixing our original code:
+
+ auto op = std::make_shared<paste>(rectangle(25, 8), center());
+ undo_tree.push(op);
+
+op is now of type std::shared_ptr<paste>, a class which wraps a raw paste
+pointer so that its constructor takes a hold of a pointer created by the
+std::make_shared() function, and its destructor release the pointer. Indeed,
+here it is not the class constructor which acquires the resource, and that is
+an infrequent deviation from the idiom, but nonetheless. The undo_tree object
+doesn't own the pointer now, and neither do we; it's the std::shared_ptr object
+which owns the raw paste pointer, and if anything goes wrong at absolutely any
+point in the object's lifetime we know for sure, and we can trivially prove it
+with the language guarantees, that the pointer will deterministically
+deallocate.
+
+ { std::ofstream undo_file("undo");
+ }  // file closes here. no open(), no close()!
+
+ { network net("http://example.com/");
+     comm(net);  // if an exception triggers, net automatically cleans up here
+ }  // otherwise network session ends here. no connect(), no disconnect()!
+
+
 April 20, 2012
 
  auto const
