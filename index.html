@@ -10,8 +10,74 @@
 
     <article>
     <header>
+    <h1>Resource Acquisition Is Initialization</h1>
+    <p><time datetime="2012-05-05">May 5, 2012</time></p>
+    </header>
+
+    <p>
+      When we manually acquire a resource&#8203;&mdash;&#8203;dynamic memory, a file handle, a
+      network connection&#8203;&mdash;&#8203;we take the responsibility of releasing the resource
+      at the correct moment; be it any return point, via an error or otherwise,
+      or at the end of the resource's scope. The more complex the code within
+      the resource lifetime, whether in our code or in any function our code
+      calls (and so on recursively), the more difficult it is to make sure the
+      resource releases correctly and efficiently.
+    </p>
+
+    <p>
+      This is not just about avoiding plain-vanilla leaks: if done manually the
+      code repeats itself, almost copy-pasted semantically speaking. And it's
+      not just about eliminating code duplication but also about accounting for
+      errors. We know errors happen (albeit not precisely when). We have to
+      anticipate that and make sure our resources clean up regardless of how we
+      leave a function.
+    </p>
+
+    <p>
+      A garbage collector only offers a solution for memory leaks, and that
+      solution is non-deterministic. Instead we take advantage of a useful set
+      of guarantees C++ has with regard to automatic object lifetime:
+    </p>
+
+    <ol>
+      <li>An object does not exist, as if never existed to begin with, unless
+        and until its constructor successfully completes its business.</li>
+      <li>Objects destruct at the end of their scope in the reverse order of
+        that in which they instantiated.</li>
+    </ol>
+
+    <p>
+      In the RAII idiom we wrap every resource in a class. We acquire the
+      resource in the class constructor and release the resource in the class
+      destructor. We then know that if the resource successfully acquires it
+      will clean up exactly when it is no longer needed--when the scope of the
+      object ends or when an exception triggers.
+    </p>
+
+<pre>
+<code>
+{ std::ofstream undo_file("undo");
+}  // file closes here. no open(), no close()!
+
+{ network net("http://example.com/");
+    comm(net);  // if an exception triggers, net automatically cleans up here
+}  // otherwise network session gracefully ends here.
+</code>
+</pre>
+
+    <p>
+      To implement the RAII idiom correctly for a resource the rule of three reminds
+      us that because we have a destructor we must also think about copy semantics
+      for the class. In the simplest of cases or when we want to defer implementing
+      correct copy functions until we need copying we delete the copy constructor and
+      copy assignment so the resource is not copiable.
+    </p>
+    </article>
+
+    <article>
+    <header>
     <h1>A Note on the <code>main()</code> Function</h1>
-    <p><time datetime="2011-04-28">April 28, 2012</time></p>
+    <p><time datetime="2012-04-28">April 28, 2012</time></p>
     </header>
 
     <p>
@@ -57,7 +123,7 @@
     <article>
     <header>
     <h1><code>auto const</code></h1>
-    <p><time datetime="2011-04-21">April 21, 2012</time></p>
+    <p><time datetime="2012-04-21">April 21, 2012</time></p>
     </header>
 
     <p>
