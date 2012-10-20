@@ -104,3 +104,11 @@ And even
  int main(int argc, char const * const argv[]) { /* ... */ }
 
 And if you can, why won't you?
+
+
+October 21, 2012
+
+I don't find this "cache end()" guideline of LLVM right:
+http://llvm.org/docs/CodingStandards.html#don-t-evaluate-end-every-time-through-a-loop
+It's a case of premature optimization, and it actually leaves room for error
+because the new identifier is a non-const lvalue.
