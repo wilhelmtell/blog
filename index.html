@@ -174,39 +174,112 @@ struct block&lt;T const * const> { };
 
   <article>
     <header>
-    <h1>A Note on the main Function</h1>
-    <p><time datetime="2012-04-21">April 20, 2012</time></p>
+    <h1>LLVM's "Cache <code>end()</code>" Guideline</h1>
+    <p><time datetime="2012-10-21">October 21, 2012</time></p>
     </header>
 
     <p>
-      Section 3.6.1 of the C++11 standard states that the main function may take
-      either of these two forms:
-    </p>
-
-<pre><code>int main() { /* ... */ }</code></pre>
-
-    <p>
-      and
-    </p>
-
-<pre><code>int main(int argc, char* argv[]) { /* ... */ }</code></pre>
-
-    <p>
-      If an implementation must allow main to take an argument of type char*[] then a
-      more const-restricted signature is valid as well:
-    </p>
-
-<pre><code>int main(int argc, char const * argv[]) { /* ... */ }</code></pre>
-
-    <p>
-      And even
-    </p>
-
-<pre><code>int main(int argc, char const * const argv[]) { /* ... */ }</code></pre>
-
-    <p>
-      And if you can, why won't you?
+      I don't find the "<a
+        href="http://llvm.org/docs/CodingStandards.html#don-t-evaluate-end-every-time-through-a-loop">cache
+        end()</a>" guideline of LLVM right: It's a case of premature
+        optimization, and it actually leaves room for error because the new
+        identifier is a non-const lvalue.
     </p>
   </article>
+
+  <article>
+    <header>
+    <h1>Splitting one commit into two</h1>
+    <p><time datetime="2012-11-10">November 10, 2012</time></p>
+    </header>
+
+    <p>
+      Suppose you just committed a large change to your git repository; a commit with
+      two logical changes. You wish to break this commit into two commits, each with
+      a logical change. How would you go about this?
+    </p>
+
+    <p>
+      You could of course use git-add--interactive, A.K.A "git add -p", prior to
+      committing your large commit, but for simplicity let's assume you don't have
+      a time-machine at an arm's reach and it is a tad too late for
+      git-add--interactive now.
+    </p>
+
+    <p>
+      What you can do is subtract the change you want to split out, then revert thi
+      subtraction so you put it back in, and finally squash the subtraction with the
+      large commit. Here's the recipe in steps:
+    </p>
+
+    <ol>
+      <li>
+        remove the code you wish to extract into a commit of its own, and then
+        commit that. You can write whatever you wish as a commit message for this
+        second commit, because as you'll see we're going to get rid of it soon.
+      </li>
+
+      <li>
+        Next, revert this commit you just created. This in effect puts back the code
+        you removed.
+      </li>
+
+      <li>
+        Last, squash together the two first commits.
+      </li>
+    </ol>
+
+    <p>
+      Let's work an example. Suppose I create files a and b, then add two lines to
+      file c, and finally commit all these changes. I then wish to split the commit
+      into two commits: the first commit adds file a plus the first line to file c,
+      and the second commit adds file b and the second line to file c. Let's follow
+      through with the recipe above:
+    </p>
+
+    <ol>
+      <li>
+        remove the second line we added to file c, and then remove file b. Commit
+        these changes. The commit message doesn't matter, but let's write something
+        reasonable for the reflog's sake:
+
+<pre><code>git commit -m"step one of splitting the large commit 04ff563"</code></pre>
+      </li>
+
+      <li>
+        Revert this last commit. Here git thinks we're reverting a commit but
+        semantically we are in fact splitting a commit, so let's say so:
+
+<pre><code>git revert --no-commit head
+git commit -m"add b to stagmitize the foo and dormitize c"</code></pre>
+
+        Alternatively say from the commandline
+
+<pre><code>git revert head</code></pre>
+
+        and write the message in the commit editor that pops up.
+      </li>
+
+      <li>
+        One last thing left to do: squash the first commit with the second commit:
+
+<pre><code>git rebase -i head~3</code></pre>
+      </li>
+    </ol>
+
+    <p>
+      In the rebase editor that pops up change the first word in the
+      second-to-last line from "pick" to "fixup". This is the line with the
+      message "add b to stagmitize the foo and dormitize c". Save and quit the
+      editor to let git squash the two commits together.
+    </p>
+
+    <p>Of course, you can repeat the procedure to split the commit further. You can
+      also apply this to any point in the timeline: just rebase-interactive to the
+      commit you wish to split, apply the steps above, and continue the rebase to put
+      the rest of history back together on top.
+    </p>
+  </article>
+
   </body>
 </html>
